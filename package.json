@@ -1,6 +1,6 @@
 {
   "name": "imean-builder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "A NestJS-based builder service for iMean ecosystem",
   "keywords": [
