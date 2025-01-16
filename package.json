@@ -2,9 +2,24 @@
   "name": "imean-builder",
   "version": "0.0.1",
   "private": true,
-  "description": "",
-  "license": "UNLICENSED",
-  "author": "",
+  "description": "A NestJS-based builder service for iMean ecosystem",
+  "keywords": [
+    "NestJS",
+    "builder",
+    "imean",
+    "backend",
+    "TypeScript"
+  ],
+  "homepage": "https://github.com/iMean-Hub/imean-builder#readme",
+  "bugs": {
+    "url": "https://github.com/iMean-Hub/imean-builder/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iMean-Hub/imean-builder.git"
+  },
+  "license": "MIT",
+  "author": "Felix Lau <felixliu553@gmail.com>",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -82,5 +97,8 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
