@@ -1,0 +1,1521 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String   @id @db.VarChar(40)
+  mobilePhoneNumber   String?  @unique @db.VarChar(20)
+  username            String   @unique @db.VarChar(50)
+  mobilePhoneVerified Boolean  @default(false)
+  nickname            String?  @db.VarChar(30)
+  biography           String?  @db.VarChar(1000)
+  password            String?  @db.VarChar(40)
+  avatar              String?  @db.LongText
+  email               String?  @db.VarChar(255)
+  emailVerified       Boolean  @default(false)
+  subscribeNews       Boolean? @default(true)
+  inactive            Boolean  @default(false)
+
+  chiefAgentId String?     @db.VarChar(40)
+  chiefAgent   ChiefAgent? @relation("chief-agent", fields: [chiefAgentId], references: [id])
+  utmRoleId    String?     @db.VarChar(40)
+  utmRole      UtmRole?    @relation("utm-role", fields: [utmRoleId], references: [id])
+  utmId        String?     @db.VarChar(40)
+  utm          Utm?        @relation("utm-user", fields: [utmId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recordings              Recording[]
+  thumbsLogs              ThumbsLog[]
+  praiseLogs              PraiseLog[]
+  socialInfo              UserSocialInfo[]
+  userRoles               UserRole[]
+  scenarioConfig          UserScenario[]
+  UserSetting             UserSetting?
+  UserShortcutConfig      UserShortcutConfig[]
+  UserApiInfo             UserApiInfo[]
+  labels                  Label[]
+  Channel                 Channel[]
+  Category                Category[]
+  ChannelMember           ChannelMember[]
+  ChannelMemberInvitation ChannelMemberInvitation[]
+  WorkflowNodes           WorkflowNode[]
+  Challenge               Challenge[]
+  Agent                   Agent[]
+  ChallengeAgents         ChallengeAgents[]
+  AiAgent                 AiAgent[]
+  UTMs                    Utm[]
+  UTMRoles                UtmRole[]                 @relation("utm-creator")
+  ChiefAgent              ChiefAgent[]
+  DatabaseStructure       DatabaseStructure[]
+  ProcessGroup            ProcessGroup[]
+  ProcessGroupDetails     ProcessGroupDetails[]
+  UserUsageBalance        UserUsageBalance?
+  UserEarnRuns            UserEarnRuns[]
+}
+
+model ProcessGroup {
+  id     String @id @db.VarChar(40)
+  status String @default("waiting")
+
+  visitorId String? @db.VarChar(40)
+  userId    String? @db.VarChar(40)
+  User      User?   @relation(fields: [userId], references: [id])
+
+  ProcessGroupDetails ProcessGroupDetails[]
+}
+
+model ProcessGroupDetails {
+  id        String @id @db.VarChar(40)
+  priority  Int    @default(1)
+  status    String @default("waiting")
+  processId String @unique @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visitorId String? @db.VarChar(40)
+  userId    String? @db.VarChar(40)
+  User      User?   @relation(fields: [userId], references: [id])
+
+  groupId String?       @db.VarChar(40)
+  group   ProcessGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  workflowId String    @db.VarChar(40)
+  workflow   Recording @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model UserSetting {
+  id     String @id @db.VarChar(40)
+  userId String @unique @db.VarChar(40)
+
+  fastMode     Boolean? @default(false)
+  aiMode       Boolean? @default(false)
+  preview      Boolean? @default(true)
+  devMode      Boolean? @default(false)
+  currencyCode String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserUsageBalance {
+  id        String  @id @db.VarChar(40)
+  userId    String? @unique @db.VarChar(40)
+  visitorId String? @unique @db.VarChar(40)
+
+  // -1 为无限制
+  rpm               Int @default(5)
+  rpd               Int @default(50)
+  concurrencyLimits Int @default(20)
+  messageBalance    Int @default(20) // user注册时改为-1
+  execBalance       Int @default(1) // user注册时+3
+  rstViewBalance    Int @default(0) // user注册时改为-1
+
+  executedProcess Boolean @default(false) // 是否执行过流程
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserScenario {
+  userId     String   @db.VarChar(40)
+  scenarioId String   @db.VarChar(40)
+  href       String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  scenario Scenario @relation(fields: [scenarioId], references: [id])
+
+  @@id([userId, scenarioId])
+}
+
+model ShortcutsConfig {
+  // JJTODO 已废弃，待删除
+  id String @id @db.VarChar(40)
+
+  order Int @default(1)
+
+  workflowId String @unique @db.VarChar(40)
+
+  actived   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  migrated    Boolean    @default(false)
+  Recording   Recording? @relation(fields: [recordingId], references: [id])
+  recordingId String?    @db.VarChar(40)
+}
+
+model UserShortcutsConfig {
+  // JJTODO 已废弃，待删除
+  userId     String @db.VarChar(40)
+  workflowId String @db.VarChar(40)
+  order      Int    @default(1)
+
+  actived     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recordingId String?  @db.VarChar(40)
+
+  migrated Boolean @default(false)
+
+  @@id([userId, workflowId])
+}
+
+model ShortcutIcon {
+  id        String  @id @db.VarChar(40)
+  iconUrl   String? @db.VarChar(255)
+  activated Boolean @default(true)
+  isDefault Boolean @default(true)
+  order     Int     @default(1)
+}
+
+model SystemShortcut {
+  id         String @id @db.VarChar(40)
+  workflowId String @unique @db.VarChar(40)
+
+  name    String? @db.VarChar(40)
+  iconUrl String? @db.VarChar(255)
+  prompt  String? @db.VarChar(255)
+
+  order     Int     @default(1)
+  activated Boolean @default(true)
+  pinned    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflow            Recording            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  UserShortcutsConfig UserShortcutConfig[]
+}
+
+model UserShortcutConfig {
+  id               String  @id @db.VarChar(40)
+  userId           String  @db.VarChar(40)
+  systemShortcutId String? @db.VarChar(40)
+  workflowId       String? @db.VarChar(40)
+
+  name    String? @db.VarChar(40)
+  iconUrl String? @db.VarChar(255)
+  prompt  String? @db.VarChar(255)
+
+  order     Int     @default(1)
+  activated Boolean @default(true)
+  pinned    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemShortcut SystemShortcut? @relation(fields: [systemShortcutId], references: [id], onDelete: Cascade)
+  workflow       Recording?      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, systemShortcutId])
+  @@unique([userId, workflowId])
+}
+
+model QuickFunctionsConfig {
+  id         String @id @db.VarChar(40)
+  workflowId String @db.VarChar(100)
+
+  name    String            @db.VarChar(100)
+  type    QuickFunctionType
+  order   Int               @default(1)
+  actived Boolean           @default(false)
+
+  workflow Recording @relation(fields: [workflowId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Scenario {
+  id                String              @id @db.VarChar(40)
+  name              String              @unique @db.VarChar(30)
+  favicon           String?             @db.VarChar(1000)
+  host              String?             @db.VarChar(255)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  UserScenario      UserScenario[]
+  RecordingScenario RecordingScenario[]
+  Category          Category[]
+}
+
+model UserSocialInfo {
+  id           String   @id @db.VarChar(40)
+  openId       String   @db.VarChar(40)
+  nickname     String?  @db.VarChar(30)
+  avatar       String?  @db.VarChar(255)
+  userId       String   @db.VarChar(40)
+  provider     String   @db.VarChar(20)
+  accessToken  String   @db.VarChar(255)
+  refreshToken String   @db.VarChar(255)
+  expiresIn    Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model CustomApi {
+  id                String        @id @db.VarChar(40)
+  apiName           String        @unique @db.VarChar(30) // calendar, google sheet exc..
+  redirectUrlSuffix String?       @db.VarChar(30)
+  icon              String?       @db.VarChar(255)
+  type              String        @unique @db.VarChar(30)
+  UserApiInfo       UserApiInfo[]
+
+  apiPlatformId String      @db.VarChar(30)
+  apiPlatform   ApiPlatform @relation(fields: [apiPlatformId], references: [id])
+
+  ComponentOutput ComponentOutput[]
+}
+
+model ApiPlatform {
+  id        String      @id @db.VarChar(40)
+  name      String      @unique @db.VarChar(30) // Google, Notion exc..
+  CustomApi CustomApi[]
+}
+
+model UserApiInfo {
+  id           String  @id @db.VarChar(40)
+  openId       String  @db.VarChar(40)
+  provider     String  @db.VarChar(20)
+  accessToken  String  @db.VarChar(255)
+  refreshToken String  @db.VarChar(255)
+  idToken      String? @db.VarChar(2048)
+  expiresIn    String  @db.VarChar(30)
+
+  type      String? // todo 废弃字段
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId      String     @db.VarChar(40)
+  customApiId String?    @db.VarChar(40)
+  user        User       @relation(fields: [userId], references: [id])
+  customApi   CustomApi? @relation(fields: [customApiId], references: [id])
+
+  @@unique([userId, type])
+  @@unique([userId, customApiId])
+}
+
+model Channel {
+  id   String @id @db.VarChar(40)
+  name String @db.VarChar(255)
+
+  type ChannelType @default(Public)
+
+  deleted Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  lastEditorId String? @db.VarChar(40)
+
+  Category          Category[]
+  Recording         Recording[]
+  ChannelSetting    ChannelSetting?
+  ChannelMember     ChannelMember[]
+  transformed       Boolean             @default(false)
+  ChallengeDatasets ChallengeDatasets[]
+  AiAgent           AiAgent[]
+  ChiefAgentChannel ChiefAgentChannel[]
+  DatabaseStructure DatabaseStructure[]
+
+  @@index([id, deleted])
+}
+
+model ChannelSetting {
+  id              String  @id @db.VarChar(40)
+  description     String? @db.VarChar(255)
+  avatar          String? @db.VarChar(255)
+  background      String? @db.VarChar(255)
+  canBeSearch     Boolean @default(false) // 可以被公开搜索到
+  skipApplication Boolean @default(false) // 不需要申请就能加入channel
+
+  channelId String  @unique @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  deleted Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Category {
+  id               String                   @id @db.VarChar(40)
+  name             String?                  @db.VarChar(255)
+  permissionPolicy CategoryPermissionPolicy @default(AllMembers)
+
+  creatorId String? @db.VarChar(40)
+  creator   User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  channelId String  @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  scenarioId String?   @db.VarChar(40)
+  scenario   Scenario? @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  deleted Boolean @default(false)
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  CategoryMember   CategoryMember[]
+  WorkflowCategory WorkflowCategory[]
+
+  @@unique([channelId, scenarioId])
+  @@unique([channelId, name])
+  @@index([channelId])
+}
+
+model WorkflowCategory {
+  id String @id @db.VarChar(40)
+
+  workflowId String    @db.VarChar(40)
+  workflow   Recording @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  categoryId String   @db.VarChar(40)
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([workflowId, categoryId])
+}
+
+model Recording {
+  id                   String                @id @db.VarChar(40)
+  deleted              Boolean               @default(false)
+  title                String?               @db.VarChar(255)
+  host                 String?               @db.VarChar(255)
+  steps                Json
+  oldSteps             Json?
+  version              Int                   @default(0)
+  description          String?               @db.VarChar(255)
+  iconUrl              String?               @db.VarChar(255)
+  iconName             String?               @db.VarChar(40)
+  iconColor            String?               @db.VarChar(10)
+  type                 RecordingType         @default(Recording)
+  fullAgentProcessType FullAgentProcessType?
+  entryHref            String?               @db.Text
+  pluginVersion        String?               @db.VarChar(20)
+  aiQuestion           String?               @db.VarChar(255)
+  instruction          String?               @db.VarChar(255)
+
+  // TODO - 待删除
+  isParamGenerated Boolean @default(false)
+  renewed          Boolean @default(false)
+  // TODO - release 4.6 更新后删除
+  renewedV2        Boolean @default(false)
+
+  device      DeviceType @default(All)
+  screenWidth Int        @default(0)
+
+  referenceId String? @db.VarChar(40)
+
+  transformed Boolean @default(false)
+
+  creator      User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String? @db.VarChar(40)
+  lastEditorId String? @db.VarChar(40)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  channelId String  @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  replayLogs ReplayLog[]
+  praiseLogs PraiseLog[]
+  thumbsLogs ThumbsLog[]
+  // notifications Notification[]
+
+  refs              RecordingRef[]      @relation("recording-ref")
+  viewLogs          ViewLog[]
+  stepReplayLogs    StepReplayLog[]
+  recordingScenario RecordingScenario[]
+
+  subFlows   WorkflowNode[] @relation("CombinedFLow") // 关联的flow
+  usingNodes WorkflowNode[] @relation("AtomFLow") // 使用的flow
+
+  aliases WorkflowAlias[] @relation("Workflow")
+
+  outputs AtomFlowOutput[]
+  params  CombinedFlowParam[]
+
+  HackFlow             HackFlow[]             @relation("Workflow") // hack
+  ActivityPageContent  ActivityPageContent[]
+  QuickFunctionsConfig QuickFunctionsConfig[]
+  WorkflowCategory     WorkflowCategory[]
+  SystemShortcut       SystemShortcut[]
+  UserShortcutConfig   UserShortcutConfig[]
+  ShortcutsConfig      ShortcutsConfig[]
+  CombinedFlowLoops    CombinedFlowLoop[]     @relation("LoopsOfCOmbinedFlow")
+  WorkflowChallenge    WorkflowChallenge?
+  AiAgentWorkflow      AiAgentWorkflow[]
+  AgentQuickFunc       AgentQuickFunc[]
+  ProcessGroupDetails  ProcessGroupDetails[]
+
+  @@index([updatedAt, createdAt])
+  @@index([channelId])
+  @@index([channelId, deleted])
+}
+
+model AtomFlowOutput {
+  id       String  @id @db.VarChar(40)
+  stepId   String  @db.VarChar(40)
+  type     String  @db.VarChar(40)
+  stepRule String  @db.VarChar(40)
+  name     String  @db.VarChar(255)
+  deleted  Boolean @default(false)
+
+  workflowId String    @db.VarChar(40)
+  workflow   Recording @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  usingParams CombinedFlowParam[]
+
+  @@unique([stepId, name, stepRule, workflowId])
+  @@index([stepId, name, stepRule, workflowId])
+}
+
+model WorkflowNode {
+  id       String  @id @db.VarChar(40)
+  type     String  @db.VarChar(40)
+  // TODO - release 4.6 更新后删除
+  priority Int?
+  metadata Json?
+  optional Boolean @default(false)
+
+  deleted      Boolean   @default(false)
+  creator      User?     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String?   @db.VarChar(40)
+  lastEditorId String?   @db.VarChar(40)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  prompt       String?   @db.Text
+  name         String?   @db.Text
+
+  // TODO - release 4.3 更新后删除
+  renewed   Boolean @default(false)
+  // TODO - release 4.8 更新后删除
+  renewedV3 Boolean @default(false)
+
+  // TODO @unique 
+  parentId   String?        @db.VarChar(40)
+  parentNode WorkflowNode?  @relation("Parent", fields: [parentId], references: [id], onDelete: Cascade)
+  subNodes   WorkflowNode[] @relation("Parent")
+
+  nextId       String?       @unique @db.VarChar(40)
+  nextNode     WorkflowNode? @relation("Next", fields: [nextId], references: [id])
+  previousNode WorkflowNode? @relation("Next")
+
+  combinedFlowId String    @db.VarChar(40)
+  combinedFlow   Recording @relation("CombinedFLow", fields: [combinedFlowId], references: [id], onDelete: Cascade)
+
+  atomFlowId String?    @db.VarChar(40)
+  atomFlow   Recording? @relation("AtomFLow", fields: [atomFlowId], references: [id], onDelete: SetNull)
+
+  componentId String?    @db.VarChar(40)
+  component   Component? @relation("Component", fields: [componentId], references: [id], onDelete: SetNull)
+
+  inputs  WorkflowNodeInput[]
+  outputs WorkflowNodeOutput[]
+}
+
+model CombinedFlowParam {
+  id   String  @id @db.VarChar(40)
+  name String? @db.Text
+  type String  @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  combinedFlowId String    @db.VarChar(40)
+  combinedFlow   Recording @relation(fields: [combinedFlowId], references: [id], onDelete: Cascade)
+
+  // 当类型为Prompt、Cache时,参数信息(type,originName,subType)由atomFlowOutputId获取
+  atomFlowOutputId String?         @db.VarChar(40)
+  atomFlowOutput   AtomFlowOutput? @relation(fields: [atomFlowOutputId], references: [id])
+
+  componentOutputId String?          @db.VarChar(40)
+  componentOutput   ComponentOutput? @relation(fields: [componentOutputId], references: [id])
+
+  globalVarId             String?                  @db.VarChar(40)
+  combinedFlowGlobalParam CombinedFlowGlobalParam? @relation(fields: [globalVarId], references: [id])
+
+  usingOutput WorkflowNodeOutput[]
+  usingInput  WorkflowNodeInput[]
+}
+
+model CombinedFlowGlobalParam {
+  id                 String  @id @db.VarChar(40)
+  name               String  @db.VarChar(255)
+  type               String  @unique() @db.VarChar(40)
+  displayInWorkspace Boolean @default(false)
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  CombinedFlowParam CombinedFlowParam[]
+}
+
+model UserEarnRuns {
+  id         String @id @db.VarChar(40)
+  userId     String @db.VarChar(40)
+  actionType String @db.VarChar(40)
+  status     String @db.VarChar(40)
+  amount     Int    @default(0)
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model WorkflowNodeInput {
+  id               String   @id @db.VarChar(40)
+  usingPromptLabel String?  @db.VarChar(255)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  nodeId String       @db.VarChar(40)
+  node   WorkflowNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  variableRichText String? @db.Text
+
+  // TODO - release 4.8 更新后删除，已经废弃，转换为 variableRichText
+  paramId String?            @db.VarChar(40)
+  param   CombinedFlowParam? @relation(fields: [paramId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowNodeOutput {
+  id        String   @id @db.VarChar(40)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nodeId String       @db.VarChar(40)
+  node   WorkflowNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  paramId String            @db.VarChar(40)
+  param   CombinedFlowParam @relation(fields: [paramId], references: [id], onDelete: Cascade)
+}
+
+model Component {
+  id          String  @id @db.VarChar(40)
+  title       String?
+  type        String  @unique()
+  description String? @db.VarChar(255)
+
+  usingNodes WorkflowNode[]    @relation("Component") // 使用的flow
+  params     ComponentOutput[]
+  fields     ComponentField[]
+}
+
+model ComponentOutput {
+  id      String  @id @db.VarChar(40)
+  name    String  @db.VarChar(255)
+  type    String  @db.VarChar(40)
+  // TODO subType没用
+  subType String? @db.VarChar(255)
+
+  componentId String    @db.VarChar(40)
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  // TODO 临时当作subType用，后期重构subType关系
+  customApiId String?    @unique @db.VarChar(40)
+  customApi   CustomApi? @relation(fields: [customApiId], references: [id], onDelete: Cascade)
+
+  usingParams CombinedFlowParam[]
+}
+
+model ComponentField {
+  id          String  @id @db.VarChar(40)
+  name        String  @db.VarChar(255)
+  description String? @db.VarChar(255)
+
+  componentId String?    @db.VarChar(40)
+  component   Component? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+
+  @@unique([componentId, name])
+}
+
+model RecordingScenario {
+  recordingId String @db.VarChar(40)
+  scenarioId  String @db.VarChar(40)
+
+  // TODO 这三个字段是干什么的？
+  scenarioHrefType ScenarioHrefType @default(Private)
+  useApi           Boolean          @default(false)
+  defaultHref      String?          @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  scenario  Scenario  @relation(fields: [scenarioId], references: [id])
+
+  @@id([recordingId, scenarioId])
+  @@index([scenarioId])
+  @@index([recordingId])
+}
+
+model HackFlow {
+  repeatableIndexes Json?
+  defaultRepeatNum  Int?
+
+  workflowId String    @unique() @db.VarChar(40)
+  workflow   Recording @relation(name: "Workflow", fields: [workflowId], references: [id], onDelete: Cascade)
+
+  replanStartIndex Int?
+  replanLen        Int?
+  replanKey        String?
+
+  @@id([workflowId])
+}
+
+// 废弃
+model CombinedFlowMapping {
+  combinedFlowId String @db.VarChar(40)
+  workflowId     String @db.VarChar(40)
+  order          Int
+
+  matrixKey   String?              @db.VarChar(40)
+  matrixBelow String?              @db.VarChar(40)
+  matrixRight String?              @db.VarChar(40)
+  positionX   Int?
+  positionY   Int?
+  type        CombinedFlowNodeType @default(flow)
+
+  @@id([combinedFlowId, workflowId, order])
+}
+
+// 废弃
+model CombinedFlowGroup {
+  combinedFlowId String @db.VarChar(40)
+  workflowId     String @db.VarChar(40)
+  order          Int
+
+  matrixKey   String?              @db.VarChar(40)
+  matrixBelow String?              @db.VarChar(40)
+  matrixRight String?              @db.VarChar(40)
+  positionX   Int?
+  positionY   Int?
+  type        CombinedFlowNodeType @default(flow)
+
+  @@id([combinedFlowId, workflowId, order])
+}
+
+// 废弃
+model CombinedFlowNode {
+  id             String  @id @db.VarChar(40)
+  combinedFlowId String  @db.VarChar(40)
+  workflowId     String  @db.VarChar(40)
+  optional       Boolean @default(false)
+
+  matrixBelow String? @db.VarChar(40)
+  matrixRight String? @db.VarChar(40)
+  position    Json?
+
+  matrixKey   String?                  @db.VarChar(40)
+  alternative CombinedFlowAlternative? @relation(name: "subNodes", fields: [matrixKey], references: [id], onDelete: Cascade)
+}
+
+// 废弃
+model CombinedFlowAlternative {
+  id             String  @id @db.VarChar(40)
+  combinedFlowId String  @db.VarChar(40)
+  matrixBelow    String? @db.VarChar(40)
+  matrixRight    String? @db.VarChar(40)
+  position       Json?
+
+  matrixKey       String?                   @db.VarChar(40)
+  alternative     CombinedFlowAlternative?  @relation(name: "subAlternatives", fields: [matrixKey], references: [id], onDelete: Cascade)
+  subAlternatives CombinedFlowAlternative[] @relation("subAlternatives")
+
+  subNodes CombinedFlowNode[] @relation("subNodes")
+}
+
+model CombinedFlowLoop {
+  id               String  @id @db.VarChar(40)
+  combinedFlowId   String  @db.VarChar(40)
+  // startFrom        String? @db.VarChar(40)
+  // finishAt         String? @db.VarChar(40)
+  loopRoundsPrompt String? @db.VarChar(40) // 考虑与node prompt 共用
+  loopRounds       Int?
+  parentLoopId     String? @db.VarChar(40)
+
+  combinedFlow Recording          @relation(name: "LoopsOfCOmbinedFlow", fields: [combinedFlowId], references: [id], onDelete: Cascade)
+  parentLoop   CombinedFlowLoop?  @relation(name: "Loop", fields: [parentLoopId], references: [id], onDelete: SetNull)
+  chiledLoops  CombinedFlowLoop[] @relation("Loop")
+}
+
+model WorkflowAlias {
+  id    String @id @db.VarChar(40)
+  alias String @db.VarChar(255)
+
+  workflowId String    @db.VarChar(40)
+  workflow   Recording @relation(name: "Workflow", fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, alias])
+}
+
+model ReplayLog {
+  id          String  @id @db.VarChar(40)
+  visitorId   String  @db.VarChar(50)
+  count       Int     @default(1)
+  percent     Float   @default(0)
+  eventSource String? @db.VarChar(100)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  finishedAt DateTime?
+
+  recordingId String    @db.VarChar(40)
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId, recordingId])
+  @@index([createdAt])
+}
+
+model ViewLog {
+  id        String @id @db.VarChar(40)
+  visitorId String @db.VarChar(50)
+  count     Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recordingId String    @db.VarChar(40)
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId, recordingId])
+  @@index([createdAt])
+}
+
+model StepReplayLog {
+  id          String  @id @db.VarChar(40)
+  visitorId   String  @db.VarChar(50)
+  stepId      String  @db.VarChar(50)
+  duration    Float   @default(0)
+  eventSource String? @db.VarChar(100)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  finishedAt DateTime?
+
+  recordingId String    @db.VarChar(40)
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId, recordingId])
+  @@index([createdAt])
+}
+
+model PraiseLog {
+  id        String  @id @db.VarChar(40)
+  visitorId String  @db.VarChar(50)
+  processId String? @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String? @db.VarChar(40)
+
+  recordingId String?    @db.VarChar(40)
+  recording   Recording? @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+}
+
+model ThumbsLog {
+  id        String @id @db.VarChar(40)
+  visitorId String @db.VarChar(50)
+
+  type ThumbsType
+
+  creator   User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String? @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recordingId String    @db.VarChar(40)
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+}
+
+model VisitorMeta {
+  id        String  @db.VarChar(40)
+  projectId String  @db.VarChar(40)
+  channelId String? @db.VarChar(40)
+
+  metadata Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([projectId, id])
+}
+
+model ChannelMemberInvitation {
+  id              String            @id @default(uuid()) @db.VarChar(40)
+  targetChannelId String            @db.VarChar(40)
+  targetRole      ChannelMemberRole
+  code            String            @db.VarChar(10)
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChannelMember {
+  id   String            @id @db.VarChar(40)
+  role ChannelMemberRole
+
+  userId String @db.VarChar(40)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channelId String  @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  order Int @default(1) // 注意是表示用户配置的channel的order，此处有点歧义
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  CategoryMember CategoryMember[]
+
+  @@unique([channelId, userId])
+}
+
+model CategoryMember {
+  id   String             @id @db.VarChar(40)
+  role ChannelMemberRole?
+
+  channelMemberId String        @db.VarChar(40)
+  channelMember   ChannelMember @relation(fields: [channelMemberId], references: [id], onDelete: Cascade)
+
+  categoryId String   @db.VarChar(40)
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channelMemberId, categoryId])
+}
+
+model UserRole {
+  id   String       @id @db.VarChar(40)
+  type UserRoleType
+
+  userId String @db.VarChar(40)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecordingRef {
+  id String @db.VarChar(40)
+
+  recording   Recording @relation("recording-ref", fields: [recordingId], references: [id], onDelete: Cascade)
+  recordingId String    @unique @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([id, recordingId])
+}
+
+model WaitingList {
+  id    String  @id @db.VarChar(40)
+  email String? @unique @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiKeyInfo {
+  id String @id @db.VarChar(40)
+
+  apiKey         String       @unique @db.VarChar(255)
+  name           String       @db.VarChar(40)
+  url            String       @db.VarChar(255)
+  supportVersion AiKeyVersion @default(GPT35_GPT4)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DefaultLabel {
+  id  String @id @db.VarChar(40)
+  tag String @unique @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Label {
+  id  String @id @db.VarChar(40)
+  tag String @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+}
+
+model ActivityPageContent {
+  id        String  @id @db.VarChar(40)
+  actived   Boolean @default(false)
+  image     String  @db.LongText
+  directUrl String? @db.VarChar(255)
+
+  activationMethod ActivationMethod
+  displayType      DisplayType
+  priority         Int
+
+  workflowId String?    @db.VarChar(40)
+  workflow   Recording? @relation(fields: [workflowId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExtensionDynamicRouting {
+  // TODO 应该默认插入default数据
+  id      String  @id @db.VarChar(40)
+  path    String? @db.VarChar(255)
+  element String? @db.VarChar(255)
+
+  parentId String?                  @db.VarChar(40)
+  parent   ExtensionDynamicRouting? @relation(name: "ParentChilren", fields: [parentId], references: [id], onDelete: Cascade)
+
+  children ExtensionDynamicRouting[] @relation(name: "ParentChilren")
+}
+
+model VisitorUsedToken {
+  visitorId String @id @db.VarChar(50)
+  // interface String @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProcessResultTable {
+  id   String  @id @db.VarChar(50)
+  name String? @db.VarChar(255)
+
+  workflowId String @db.VarChar(40)
+  processId  String @db.VarChar(40)
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  columns ProcessResultColumn[]
+}
+
+model ProcessResultColumn {
+  id       String @id @db.VarChar(50)
+  name     String @db.VarChar(255)
+  order    Int    @default(1)
+  width    Int    @default(150)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tableId String              @db.VarChar(40)
+  table   ProcessResultTable? @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  cells ProcessResultCell[]
+}
+
+model ProcessResultCell {
+  id    String @id @db.VarChar(50)
+  rowId String @db.VarChar(50)
+
+  dataType ProcessResultCellDataType
+  value    String                    @db.LongText
+  metadata Json?
+
+  columnId String               @db.VarChar(40)
+  column   ProcessResultColumn? @relation(fields: [columnId], references: [id], onDelete: Cascade)
+}
+
+model Challenge {
+  id          String  @id @db.VarChar(50)
+  name        String  @db.VarChar(255)
+  description String? @db.LongText
+  coverUrl    String? @db.VarChar(1000)
+
+  tags Json?
+
+  homepageInfo    String? @db.LongText
+  participateWays String? @db.LongText
+  contactInfo     String? @db.LongText
+
+  realName     String? @db.VarChar(255)
+  organization String? @db.VarChar(255)
+  downloadUrl  String? @db.VarChar(500)
+  actived      Boolean @default(false)
+  private      Boolean @default(false)
+
+  difficulty ChallengeDifficultyType @default(Unknown)
+
+  completionScore Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator      User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String @db.VarChar(40)
+  lastEditorId String @db.VarChar(40)
+
+  ChallengeAgents   ChallengeAgents[]
+  ChallengeDatasets ChallengeDatasets[]
+  ChallengeTags     ChallengeTags[]
+}
+
+model ChallengeDatasets {
+  // 所谓的Dataset暂时认知为challenge和channel官链表
+  id String @id @db.VarChar(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  challengeId String    @db.VarChar(40)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  channelId String  @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, channelId])
+}
+
+model ChallengeTags {
+  id          String    @id @db.VarChar(50)
+  challengeId String    @db.VarChar(40)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  tagId String       @db.VarChar(40)
+  tag   ChallengeTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, tagId])
+}
+
+model ChallengeAgents {
+  id          String    @id @db.VarChar(50)
+  challengeId String    @db.VarChar(40)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  agentId String @db.VarChar(40)
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  @@unique([challengeId, agentId])
+}
+
+model Agent {
+  id           String  @id @db.VarChar(50)
+  name         String  @db.VarChar(255)
+  baseModel    String  @db.VarChar(255)
+  isOpenSource Boolean @default(false)
+
+  resultUrl  String  @db.VarChar(255)
+  codeUrl    String? @db.VarChar(255)
+  githubLink String? @db.VarChar(255)
+  modelUrl   String? @db.VarChar(255)
+
+  efficiencyScore Int?
+  completionScore Int?
+  taskSuccessRate Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deleted   Boolean   @default(false)
+  deletedAt DateTime?
+
+  creator      User    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String  @db.VarChar(40)
+  lastEditorId String? @db.VarChar(40)
+
+  ChallengeAgents ChallengeAgents[]
+}
+
+model AiAgent {
+  id                String    @id @db.VarChar(40)
+  title             String    @db.VarChar(255)
+  description       String?   @db.VarChar(255)
+  avatar            String?   @db.VarChar(255)
+  background        String?   @db.VarChar(255)
+  systemInstruction String?   @db.VarChar(2000)
+  greeting          String?   @db.VarChar(2000)
+  modelType         ModelType
+
+  // ai assistant
+  conversationAssistantId String? @db.VarChar(255)
+  checkAssistantId        String? @db.VarChar(255)
+  questionAssistantId     String? @db.VarChar(255)
+  taggingAssistantId      String? @db.VarChar(255)
+  llmAssistantId          String? @db.VarChar(255)
+  summarizeAssistantId    String? @db.VarChar(255)
+  titleAssistantId        String? @db.VarChar(255)
+
+  // ai文件
+  fileUrl       String? @db.VarChar(2000)
+  knowledge     Json?
+  vectorStoreId String? @db.VarChar(255)
+
+  deleted Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId String?  @db.VarChar(40)
+
+  lastEditorId      String?             @db.VarChar(40)
+  AiAgentWorkflow   AiAgentWorkflow[]
+  AiAgentQuestions  AiAgentQuestion[]
+  ChiefAgentAiAgent ChiefAgentAiAgent[]
+  AgentQuickFunc    AgentQuickFunc[]
+
+  @@index([id, deleted])
+}
+
+model AiAgentQuestion {
+  id String @id @db.VarChar(40)
+
+  order    Int     @default(1)
+  question String? @db.VarChar(255)
+
+  aiAgentId String?  @db.VarChar(255)
+  aiAgent   AiAgent? @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+
+  chiefAgentId String?     @db.VarChar(255)
+  chiefAgent   ChiefAgent? @relation(fields: [chiefAgentId], references: [id], onDelete: Cascade)
+}
+
+model AiAgentWorkflow {
+  id String @id @db.VarChar(40)
+
+  aiAgentId  String    @db.VarChar(255)
+  aiAgent    AiAgent   @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  workflowId String    @db.VarChar(255)
+  workflow   Recording @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([aiAgentId, workflowId])
+}
+
+model ChiefAgent {
+  id                String    @id @db.VarChar(40)
+  title             String    @db.VarChar(255)
+  description       String?   @db.VarChar(255)
+  avatar            String?   @db.VarChar(255)
+  background        String?   @db.VarChar(255)
+  systemInstruction String?   @db.VarChar(2000)
+  greeting          String?   @db.VarChar(2000)
+  modelType         ModelType
+
+  // ai assistant
+  chiefAgentAssistantId String? @db.VarChar(255)
+
+  // ai文件
+  fileUrl       String? @db.VarChar(2000)
+  knowledge     Json?
+  vectorStoreId String? @db.VarChar(255)
+
+  deleted Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  lastEditorId String? @db.VarChar(40)
+
+  UtmRole           UtmRole[]
+  ChiefAgentAiAgent ChiefAgentAiAgent[]
+  ChiefAgentChannel ChiefAgentChannel[]
+  AgentQuickFunc    AgentQuickFunc[]
+  AiAgentQuestion   AiAgentQuestion[]
+  User              User[]              @relation("chief-agent")
+
+  @@index([id, deleted])
+}
+
+model AgentQuickFunc {
+  id       String            @id @db.VarChar(40)
+  name     String            @db.VarChar(100)
+  type     AgentPrimFuncType
+  funcType AgentSubFuncType?
+  order    Int               @default(1)
+  actived  Boolean           @default(false)
+
+  chiefAgentId String?     @db.VarChar(255)
+  chiefAgent   ChiefAgent? @relation(fields: [chiefAgentId], references: [id], onDelete: Cascade)
+  aiAgentId    String?     @db.VarChar(255)
+  aiAgent      AiAgent?    @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  workflowId   String?     @db.VarChar(100)
+  workflow     Recording?  @relation(fields: [workflowId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChiefAgentAiAgent {
+  id String @id @db.VarChar(40)
+
+  chiefAgentId String     @db.VarChar(255)
+  chiefAgent   ChiefAgent @relation(fields: [chiefAgentId], references: [id], onDelete: Cascade)
+  aiAgentId    String     @db.VarChar(255)
+  aiAgent      AiAgent    @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([chiefAgentId, aiAgentId])
+}
+
+model ChiefAgentChannel {
+  id String @id @db.VarChar(40)
+
+  chiefAgentId String     @db.VarChar(255)
+  chiefAgent   ChiefAgent @relation(fields: [chiefAgentId], references: [id], onDelete: Cascade)
+  channelId    String     @db.VarChar(255)
+  channel      Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([chiefAgentId, channelId])
+}
+
+model Utm {
+  id           String  @id @db.VarChar(50)
+  name         String  @unique @db.VarChar(255)
+  lastEditorId String? @db.VarChar(40)
+
+  creatorId String? @db.VarChar(40)
+  creator   User?   @relation(fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  default Boolean @default(false)
+
+  UtmRole UtmRole[]
+  user    User[]    @relation("utm-user")
+}
+
+model UtmRole {
+  id    String @id @db.VarChar(50)
+  name  String @db.VarChar(255)
+  order Int    @default(1)
+
+  utm          Utm         @relation(fields: [utmId], references: [id], onDelete: Cascade)
+  utmId        String      @db.VarChar(40)
+  creator      User?       @relation("utm-creator", fields: [creatorId], references: [id])
+  creatorId    String?     @db.VarChar(40)
+  chiefAgent   ChiefAgent? @relation(fields: [chiefAgentId], references: [id])
+  chiefAgentId String?     @db.VarChar(40)
+  default      Boolean     @default(false)
+
+  lastEditorId String? @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User[] @relation("utm-role")
+
+  @@unique([utmId, name])
+}
+
+model ChallengeTag {
+  id            String          @id @db.VarChar(50)
+  name          String          @unique @db.VarChar(255)
+  ChallengeTags ChallengeTags[]
+}
+
+model WorkflowChallenge {
+  id              String                  @id @db.VarChar(50)
+  difficulty      ChallengeDifficultyType @default(Unknown)
+  difficultyScore Int?
+
+  workflowId String    @unique @db.VarChar(40)
+  workflow   Recording @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model DatabaseStructure {
+  id          String  @id @db.VarChar(40)
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+  viewName    String? @db.VarChar(100)
+
+  channelId String  @db.VarChar(40)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String @db.VarChar(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fields DatabaseStructureField[]
+}
+
+model DatabaseStructureField {
+  id    String @id @db.VarChar(40)
+  name  String @db.VarChar(255)
+  order Int    @default(1)
+  type  String @default("String")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  databaseStructureId String            @db.VarChar(40)
+  databaseStructure   DatabaseStructure @relation(fields: [databaseStructureId], references: [id], onDelete: Cascade)
+}
+
+enum ProcessResultCellDataType {
+  String
+  Object
+}
+
+enum DisplayType {
+  Banner
+  Tiles
+}
+
+enum ActivationMethod {
+  Url
+  Workflow
+}
+
+enum AiKeyVersion {
+  GPT35
+  GPT4
+  GPT35_GPT4
+}
+
+enum ModelType {
+  GPT35
+  GPT4
+}
+
+enum UserRoleType {
+  SystemAdmin
+  Admin
+  Scholar
+}
+
+enum ChannelMemberRole {
+  Viewer
+  Editor
+  Admin
+  Owner
+}
+
+enum ThumbsType {
+  ThumbsUp
+  ThumbsDown
+}
+
+enum RecordingType {
+  Recording
+  Page
+  CombinedFlow
+}
+
+enum FullAgentProcessType {
+  WebResearch
+  WebNavigation
+}
+
+enum DeviceType {
+  All
+  Desktop
+  Mobile
+}
+
+enum TriggerType {
+  Auto
+  Event
+}
+
+enum TriggerRate {
+  Once
+  Always
+  Custom
+}
+
+enum TriggerPeriod {
+  Day
+  Week
+  Month
+  Year
+}
+
+enum ScenarioHrefType {
+  Fixed
+  Private
+}
+
+// 废弃
+enum CombinedFlowNodeType {
+  alternative
+  flow
+  Loop
+  Component
+}
+
+enum QuickFunctionType {
+  AddToShoppingCart
+}
+
+enum AgentPrimFuncType {
+  Workflow
+  Function
+}
+
+enum AgentSubFuncType {
+  Flag
+}
+
+enum CategoryPermissionPolicy {
+  AllMembers
+  SeletedMembers
+}
+
+enum ChannelType {
+  Official
+  Private
+  Public
+}
+
+enum ChallengeDifficultyType {
+  Unknown
+  Easy
+  Normal
+  Hard
+}
