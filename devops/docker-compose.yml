@@ -1,0 +1,53 @@
+version: '3.9'
+name: 'imean-local'
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - data-redis:/data
+    command: redis-server --port 6379 --requirepass localpass  --appendonly yes
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: localpass
+      MYSQL_DATABASE: root
+    ports:
+      - '3306:3306'
+    command: --lower_case_table_names=1
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    ports:
+      - '27017:27017'
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=localpass
+    volumes:
+      - data-mongo:/data/db
+
+  etcd:
+    hostname: etcd
+    image: bitnami/etcd
+    restart: always
+    ports:
+      - '2379:2379'
+      - '2380:2380'
+    environment:
+      - ETCD_ROOT_PASSWORD=localpass
+      - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - data-etcd:/bitnami/etcd/data
+
+volumes:
+  data-rabbitmq:
+  data-redis:
+  data-etcd:
+  data-mongo:
